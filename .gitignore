@@ -1,0 +1,12 @@
+.env
+__pycache__/
+*.pyc
+data/raw/
+data/processed/
+chroma_db/
+.DS_Store
+node_modules/
+venv/
+*.egg-info/
+dist/
+.pytest_cache/
