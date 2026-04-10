@@ -164,5 +164,7 @@ if __name__ == "__main__":
     ]
 
     print(" Running with dummy samples — requires OPENAI_API_KEY in .env")
+    print(" Running with dummy samples — requires OPENAI_API_KEY in .env")
+
     result = evaluate_rag(dummy_samples)
     print("Output dict:", result)
