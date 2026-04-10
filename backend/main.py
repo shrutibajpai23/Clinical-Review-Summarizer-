@@ -15,7 +15,7 @@ from backend.rag.summarizer import summarize
 
 app = FastAPI(
     title="Clinical Review Summarizer API",
-    description="RAG-powered clinical document summarization using Groq Llama 3",
+    description="RAG-powered clinical document summarization using Gemini",
     version="1.0.0"
 )
 
