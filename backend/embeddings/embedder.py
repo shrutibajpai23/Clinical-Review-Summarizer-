@@ -1,80 +1,42 @@
-import os
-import time
-from google import genai
-from google.genai import types
-from dotenv import load_dotenv
+"""
+backend/embeddings/embedder.py
+Embed text using HuggingFace sentence-transformers (free, runs locally).
+Model: all-MiniLM-L6-v2 — fast, lightweight, 384-dimensional embeddings.
+"""
 
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '..', '.env'))
+from __future__ import annotations
 
-api_key = os.getenv("GEMINI_API_KEY")
-if not api_key:
-    raise ValueError("GEMINI_API_KEY not found in .env file!")
+_model = None
 
-client = genai.Client(api_key=api_key)
 
-EMBEDDING_MODEL = "models/gemini-embedding-2-preview"
-MAX_RETRIES = 3
-RETRY_DELAY = 2
+def _get_model():
+    global _model
+    if _model is None:
+        from sentence_transformers import SentenceTransformer
+        print("⏳ Loading embedding model (first time only) …")
+        _model = SentenceTransformer("all-MiniLM-L6-v2")
+        print("✅ Embedding model loaded")
+    return _model
 
 
 def embed_text(text: str) -> list[float]:
-    """
-    Embed a single string using Gemini embedding model.
-    Returns a list of floats.
-    """
-    for attempt in range(MAX_RETRIES):
-        try:
-            result = client.models.embed_content(
-                model=EMBEDDING_MODEL,
-                contents=text.strip(),
-                config=types.EmbedContentConfig(task_type="RETRIEVAL_DOCUMENT")
-            )
-            return result.embeddings[0].values
-
-        except Exception as e:
-            if attempt < MAX_RETRIES - 1:
-                print(f"  [Retry {attempt+1}] Embedding failed: {e}")
-                time.sleep(RETRY_DELAY)
-            else:
-                raise RuntimeError(f"Embedding failed after {MAX_RETRIES} attempts: {e}")
+    text = text.replace("\n", " ").strip()
+    model = _get_model()
+    vector = model.encode(text, convert_to_numpy=True)
+    return vector.tolist()
 
 
 def embed_chunks(chunks: list[dict]) -> list[dict]:
-    """
-    Add an 'embedding' field to each chunk dict.
-    """
-    print(f"Embedding {len(chunks)} chunks using {EMBEDDING_MODEL}...")
-    embedded = []
-
-    for i, chunk in enumerate(chunks):
-        print(f"  [{i+1}/{len(chunks)}] Embedding: {chunk['chunk_id']}")
-        embedding = embed_text(chunk["text"])
-        embedded_chunk = {**chunk, "embedding": embedding}
-        embedded.append(embedded_chunk)
-
-        if i > 0 and i % 10 == 0:
-            time.sleep(0.5)
-
-    print(f"Done. {len(embedded)} chunks embedded.")
-    return embedded
-
-
-def embed_query(query: str) -> list[float]:
-    """
-    Embed a user query for similarity search.
-    """
-    for attempt in range(MAX_RETRIES):
-        try:
-            result = client.models.embed_content(
-                model=EMBEDDING_MODEL,
-                contents=query.strip(),
-                config=types.EmbedContentConfig(task_type="RETRIEVAL_QUERY")
-            )
-            return result.embeddings[0].values
-
-        except Exception as e:
-            if attempt < MAX_RETRIES - 1:
-                print(f"  [Retry {attempt+1}] Query embedding failed: {e}")
-                time.sleep(RETRY_DELAY)
-            else:
-                raise RuntimeError(f"Query embedding failed after {MAX_RETRIES} attempts: {e}")
+    total = len(chunks)
+    print(f"🔢 Embedding {total} chunks locally …")
+    model = _get_model()
+    texts = [chunk.get("text", "").replace("\n", " ").strip() for chunk in chunks]
+    vectors = model.encode(texts, convert_to_numpy=True, show_progress_bar=True)
+    for i, (chunk, vector) in enumerate(zip(chunks, vectors)):
+        if not texts[i]:
+            chunk["embedding"] = None
+        else:
+            chunk["embedding"] = vector.tolist()
+    embedded = sum(1 for c in chunks if c.get("embedding") is not None)
+    print(f"\n✅ Done — {embedded}/{total} chunks embedded successfully")
+    return chunks

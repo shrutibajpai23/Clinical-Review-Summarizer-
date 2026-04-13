@@ -1,103 +1,170 @@
+"""
+backend/rag/summarizer.py
+Generate structured clinical summaries using Groq Llama 3.
+Never hallucinate — cites source chunks for every claim.
+"""
+
+from __future__ import annotations
+
 import os
-from groq import Groq
+import json
 from dotenv import load_dotenv
+from groq import Groq
 
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '..', '.env'))
+load_dotenv()
 
-api_key = os.getenv("GROQ_API_KEY")
-if not api_key:
-    raise ValueError("GROQ_API_KEY not found in .env file!")
+# ── Config 
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+CHAT_MODEL   = os.getenv("CHAT_MODEL", "llama-3.3-70b-versatile")
+MAX_TOKENS   = 1500
 
-client = Groq(api_key=api_key)
-CHAT_MODEL = "llama-3.3-70b-versatile"
 
-SYSTEM_PROMPT = """You are a clinical AI assistant specializing in medical document analysis.
+_groq_client: Groq | None = None
 
-Given clinical document excerpts, produce a structured medical summary with EXACTLY these sections:
 
-**Patient/Study Overview**
-Brief overview of the patient or study subject.
+def _get_client() -> Groq:
+    global _groq_client
+    if _groq_client is None:
+        if not GROQ_API_KEY:
+            raise ValueError("GROQ_API_KEY not found in environment / .env file")
+        _groq_client = Groq(api_key=GROQ_API_KEY)
+    return _groq_client
 
-**Key Findings**
-The most important clinical findings from the documents.
 
-**Diagnosis / Conclusions**
-Primary diagnosis or conclusions drawn.
-
-**Recommendations / Next Steps**
-Suggested treatments, follow-ups, or actions.
-
-**Limitations / Risks**
-Any risks, limitations, or missing information.
+SYSTEM_PROMPT = """You are a clinical AI assistant. Given clinical document excerpts below, \
+produce a structured medical summary with these exact sections:
+- Patient/Study Overview
+- Key Findings
+- Diagnosis / Conclusions
+- Recommendations / Next Steps
+- Limitations or Risks
 
 Rules:
-1. Base EVERY claim only on the provided document excerpts
-2. If information is missing, write "Not mentioned in provided documents"
-3. Never hallucinate medical facts
-4. Be concise but clinically precise
-5. Always mention the source document for key claims"""
+1. Cite the source chunk for every claim using format [source: filename, chunk N]
+2. Never hallucinate medical facts
+3. If information is missing, say "Not mentioned in provided documents"
+4. Be concise but complete
+5. Use medical terminology appropriately
+6. Return ONLY valid JSON — no markdown, no explanation outside the JSON
+
+Return your response as a JSON object with exactly these keys:
+{
+  "overview": "...",
+  "key_findings": "...",
+  "diagnosis": "...",
+  "recommendations": "...",
+  "limitations": "...",
+  "sources_used": ["filename1", "filename2"]
+}"""
 
 
-def build_prompt(query: str, chunks: list[dict]) -> str:
-    context_parts = []
-    for i, chunk in enumerate(chunks):
-        source = chunk["metadata"]["source"]
-        context_parts.append(
-            f"--- Excerpt {i+1} (Source: {source}) ---\n{chunk['text']}"
-        )
-    context = "\n\n".join(context_parts)
-
-    return f"""Based on the following clinical document excerpts, answer this query:
-
-QUERY: {query}
-
-DOCUMENT EXCERPTS:
-{context}
-
-Provide a structured clinical summary following the format specified."""
+def _build_context(chunks: list[dict]) -> str:
+    """Format retrieved chunks into a numbered context block for the prompt."""
+    parts = []
+    for i, chunk in enumerate(chunks, 1):
+        source = chunk.get("source", "unknown")
+        idx    = chunk.get("chunk_index", 0)
+        text   = chunk.get("text", "").strip()
+        parts.append(f"[Chunk {i} | source: {source} | chunk index: {idx}]\n{text}")
+    return "\n\n---\n\n".join(parts)
 
 
 def summarize(query: str, chunks: list[dict]) -> dict:
     """
-    Generate a structured clinical summary using Groq Llama 3.
+    Generate a structured clinical summary for a query given retrieved chunks.
+
+    Parameters
+    ----------
+    query  : the user's clinical question
+    chunks : retrieved chunks from ChromaDB (from retriever.py)
+
+    Returns
+    -------
+    dict with keys:
+        overview, key_findings, diagnosis, recommendations,
+        limitations, sources_used, query, model, num_chunks_used
     """
     if not chunks:
         return {
-            "summary": "No relevant documents found for this query.",
-            "sources": [],
-            "query":   query,
-            "model":   CHAT_MODEL
+            "overview":        "Not mentioned in provided documents",
+            "key_findings":    "Not mentioned in provided documents",
+            "diagnosis":       "Not mentioned in provided documents",
+            "recommendations": "Not mentioned in provided documents",
+            "limitations":     "No source documents were retrieved.",
+            "sources_used":    [],
+            "query":           query,
+            "model":           CHAT_MODEL,
+            "num_chunks_used": 0,
         }
 
-    prompt = build_prompt(query, chunks)
-    print(f"  [Summarizer] Calling {CHAT_MODEL} via Groq...")
-
-    response = client.chat.completions.create(
-        model=CHAT_MODEL,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user",   "content": prompt}
-        ],
-        temperature=0.2,
-        max_tokens=1500
+    context      = _build_context(chunks)
+    user_message = (
+        f"Clinical Question: {query}\n\n"
+        f"Retrieved Document Excerpts:\n\n{context}"
     )
 
-    summary_text = response.choices[0].message.content
+    client = _get_client()
 
-    sources = [
-        {
-            "chunk_id":    c["chunk_id"],
-            "source":      c["metadata"]["source"],
-            "chunk_index": c["metadata"]["chunk_index"],
-            "similarity":  c["similarity"],
-            "text":        c["text"][:200]
+    try:
+        response = client.chat.completions.create(
+            model      = CHAT_MODEL,
+            max_tokens = MAX_TOKENS,
+            messages   = [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user",   "content": user_message},
+            ],
+            temperature = 0.1,   # low temp for factual medical output
+        )
+    except Exception as exc:
+        raise RuntimeError(f"Groq API call failed: {exc}") from exc
+
+    raw_content = response.choices[0].message.content.strip()
+
+    # ── Parse JSON response
+    try:
+        # Strip markdown fences if model adds them anyway
+        if raw_content.startswith("```"):
+            raw_content = raw_content.split("```")[1]
+            if raw_content.startswith("json"):
+                raw_content = raw_content[4:]
+        summary = json.loads(raw_content.strip())
+    except json.JSONDecodeError:
+        # Fallback: wrap raw text in structured dict
+        summary = {
+            "overview":        raw_content,
+            "key_findings":    "Not mentioned in provided documents",
+            "diagnosis":       "Not mentioned in provided documents",
+            "recommendations": "Not mentioned in provided documents",
+            "limitations":     "JSON parsing failed — raw model output above",
+            "sources_used":    [],
         }
-        for c in chunks
+
+    # ── Attach meta 
+    summary["query"]           = query
+    summary["model"]           = CHAT_MODEL
+    summary["num_chunks_used"] = len(chunks)
+
+    return summary
+
+
+
+if __name__ == "__main__":
+    dummy_chunks = [
+        {
+            "chunk_id":    "test_chunk_0000",
+            "text":        "Patient is a 45-year-old male presenting with chest pain radiating to the left arm. BP 160/100. ECG shows ST elevation in leads II, III, aVF.",
+            "source":      "0003_Cardiology_sample.txt",
+            "chunk_index": 0,
+        },
+        {
+            "chunk_id":    "test_chunk_0001",
+            "text":        "Assessment: Inferior STEMI. Plan: Emergent PCI. Start aspirin 325mg, heparin drip. Cardiology consult placed.",
+            "source":      "0003_Cardiology_sample.txt",
+            "chunk_index": 1,
+        },
     ]
 
-    return {
-        "summary": summary_text,
-        "sources": sources,
-        "query":   query,
-        "model":   CHAT_MODEL
-    }
+    result = summarize("What is the patient's diagnosis and treatment plan?", dummy_chunks)
+    print("\n── Summary Output ──────────────────────────────")
+    for key, val in result.items():
+        print(f"\n{key.upper()}:\n{val}")
