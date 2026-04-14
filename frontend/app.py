@@ -1,6 +1,6 @@
 """
 frontend/app.py
-Clinical Review Summarizer — Orange Pink White Theme v4 + Source Filter
+Clinical Review Summarizer — Indigo + Cool Gray Theme
 Run: streamlit run frontend/app.py
 """
 
@@ -19,67 +19,67 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;1,400&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&family=Sora:wght@300;400;600&display=swap');
 
+/* ── Base ── */
 html, body, [class*="css"], .stApp {
-    background-color: #f8fafc !important;
-    color: #0f172a !important;
+    background-color: #F7F7FB !important;
+    color: #1A1740 !important;
     font-family: 'Inter', sans-serif !important;
 }
 
-/* Hide footer and main menu but NOT header (sidebar toggle lives there) */
 #MainMenu, footer { visibility: hidden; }
-
-/* Hide ONLY the Deploy button */
 .stDeployButton { display: none !important; }
 
-/* Make header transparent so it's invisible but the toggle button stays clickable */
 [data-testid="stHeader"] {
     background: transparent !important;
     box-shadow: none !important;
 }
 
-.block-container { padding: 2.5rem 3rem 4rem !important; max-width: 100% !important; }
+.block-container {
+    padding: 2.5rem 3rem 4rem !important;
+    max-width: 100% !important;
+}
 
-/* ── Sidebar expanded ── */
+/* ── Sidebar ── */
 [data-testid="stSidebar"] {
-    background-color: #f1f5f9 !important;
-    border-right: 1.5px solid #bae6fd !important;
+    background-color: #F0EFF9 !important;
+    border-right: 1px solid #CECBF6 !important;
     min-width: 280px !important;
 }
-[data-testid="stSidebar"] * { color: #0f172a !important; }
-[data-testid="stSidebar"] .stMarkdown p { font-size: 14px !important; }
+[data-testid="stSidebar"] * { color: #1A1740 !important; }
+[data-testid="stSidebar"] .stMarkdown p {
+    font-size: 13px !important;
+    color: #7F77DD !important;
+}
 
-/* ── Sidebar collapsed ── */
 [data-testid="stSidebar"][aria-expanded="false"] {
     min-width: 0px !important;
     width: 0px !important;
     overflow: visible !important;
 }
 
-/* ── Sidebar toggle button — always visible, fixed to viewport ── */
 [data-testid="collapsedControl"] {
     display: flex !important;
     visibility: visible !important;
     opacity: 1 !important;
-    background: #14b8a6 !important;
-    color: white !important;
-    border: 3px solid white !important;
+    background: #534AB7 !important;
+    color: #EEEDFE !important;
+    border: 3px solid #F7F7FB !important;
     border-radius: 50% !important;
     width: 42px !important;
     height: 42px !important;
-    box-shadow: 0 4px 14px rgba(20, 184, 166, 0.5) !important;
+    box-shadow: 0 4px 14px rgba(83,74,183,0.28) !important;
     z-index: 999999 !important;
     position: fixed !important;
     top: 18px !important;
     left: 12px !important;
 }
 [data-testid="collapsedControl"]:hover {
-    background: #0d9488 !important;
+    background: #3C3489 !important;
     transform: scale(1.08) !important;
 }
 
-/* Hide sidebar content when collapsed — but NOT the toggle button */
 [data-testid="stSidebar"][aria-expanded="false"] .stMarkdown,
 [data-testid="stSidebar"][aria-expanded="false"] p,
 [data-testid="stSidebar"][aria-expanded="false"] h1,
@@ -93,134 +93,384 @@ html, body, [class*="css"], .stApp {
     display: none !important;
 }
 
-/* Sidebar Logo - Bigger & Cleaner */
-[data-testid="stSidebar"] h1,
-[data-testid="stSidebar"] .stMarkdown h1,
-[data-testid="stSidebar"] > div:first-child {
-    font-size: 1.85rem !important;
+/* ── Sidebar logo ── */
+.sb-logo-wrap {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 4px 0 12px;
+}
+.sb-logo-icon {
+    width: 36px;
+    height: 36px;
+    background: #534AB7;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.sb-logo-icon svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: #EEEDFE;
+    stroke-width: 2px;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+.sb-logo-name {
+    font-size: 15px !important;
     font-weight: 600 !important;
-    margin-bottom: 4px !important;
+    color: #1A1740 !important;
+    font-family: 'Sora', sans-serif !important;
+    line-height: 1.2;
+    letter-spacing: -0.2px;
+}
+.sb-logo-sub {
+    font-size: 11px !important;
+    color: #7F77DD !important;
+    margin-top: 1px;
 }
 
-/* Main Heading */
+/* ── Headings ── */
 h1 {
-    font-family: 'Playfair Display', serif !important;
-    font-size: 3rem !important;
+    font-family: 'Sora', sans-serif !important;
+    font-size: 2.8rem !important;
     font-weight: 600 !important;
-    color: #0f172a !important;
-    letter-spacing: -0.5px !important;
+    color: #1A1740 !important;
+    letter-spacing: -1px !important;
     line-height: 1.15 !important;
 }
-
 h1 span {
-    background: linear-gradient(135deg, #0ea5e9, #10b981) !important;
-    -webkit-background-clip: text !important;
-    -webkit-text-fill-color: transparent !important;
-    font-style: italic !important;
+    color: #534AB7 !important;
+    -webkit-text-fill-color: #534AB7 !important;
+    font-style: normal !important;
 }
-
 h2, h3 {
-    font-family: 'Playfair Display', serif !important;
-    color: #0f172a !important;
+    font-family: 'Sora', sans-serif !important;
+    color: #1A1740 !important;
+}
+[data-testid="stSidebar"] h1,
+[data-testid="stSidebar"] h2,
+[data-testid="stSidebar"] h3 {
+    font-family: 'Inter', sans-serif !important;
+    font-weight: 500 !important;
+    color: #1A1740 !important;
+    font-size: 1rem !important;
 }
 
+/* ── Text area ── */
 [data-testid="stTextArea"] textarea {
     background: #ffffff !important;
-    border: 1.5px solid #bae6fd !important;
-    border-radius: 14px !important;
-    color: #0f172a !important;
-    font-size: 17px !important;
+    border: 1px solid #CECBF6 !important;
+    border-radius: 12px !important;
+    color: #1A1740 !important;
+    font-size: 16px !important;
     font-family: 'Inter', sans-serif !important;
-    padding: 16px !important;
-    line-height: 1.6 !important;
+    padding: 14px 16px !important;
+    line-height: 1.65 !important;
 }
 [data-testid="stTextArea"] textarea:focus {
-    border-color: #0ea5e9 !important;
-    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15) !important;
+    border-color: #7F77DD !important;
+    box-shadow: 0 0 0 3px rgba(127,119,221,0.14) !important;
 }
-[data-testid="stTextArea"] textarea::placeholder { color: #94a3b8 !important; }
-[data-testid="stTextArea"] label { color: #0369a1 !important; font-size: 14px !important; font-weight: 500 !important; }
-
-.stButton > button {
-    background: linear-gradient(135deg, #0ea5e9 0%, #10b981 100%) !important;
-    color: #ffffff !important;
-    border: none !important;
-    border-radius: 12px !important;
-    font-family: 'IBM Plex Mono', monospace !important;
-    font-size: 15px !important;
-    font-weight: 500 !important;
-    padding: 0.7rem 2rem !important;
-    width: 100% !important;
-    transition: all 0.2s !important;
-}
-.stButton > button:hover { opacity: 0.92 !important; transform: translateY(-1px) !important; }
-.stButton > button:disabled { background: #e2e8f0 !important; color: #64748b !important; }
-
-[data-testid="stSlider"] label,
-[data-testid="stCheckbox"] label,
-[data-testid="stRadio"] label {
-    color: #1e40af !important;
+[data-testid="stTextArea"] textarea::placeholder { color: #AFA9EC !important; }
+[data-testid="stTextArea"] label {
+    color: #534AB7 !important;
     font-size: 13px !important;
-    font-family: 'IBM Plex Mono', monospace !important;
+    font-weight: 500 !important;
+    font-family: 'JetBrains Mono', monospace !important;
 }
 
-[data-testid="stSelectbox"] label { color: #0369a1 !important; font-size: 13px !important; font-family: 'IBM Plex Mono', monospace !important; }
+/* ── All buttons default ── */
+.stButton > button {
+    background: #534AB7 !important;
+    color: #EEEDFE !important;
+    border: none !important;
+    border-radius: 10px !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    padding: 0.65rem 1.5rem !important;
+    width: 100% !important;
+    transition: all 0.18s ease !important;
+    letter-spacing: 0.1px !important;
+}
+.stButton > button:hover {
+    background: #3C3489 !important;
+    transform: translateY(-1px) !important;
+}
+.stButton > button:disabled {
+    background: #D3D1C7 !important;
+    color: #B4B2A9 !important;
+}
+
+/* ── Example query pill buttons ── */
+div.ex-btn .stButton > button {
+    background: transparent !important;
+    border: 1px solid #CECBF6 !important;
+    border-radius: 20px !important;
+    color: #534AB7 !important;
+    font-size: 12px !important;
+    font-family: 'Inter', sans-serif !important;
+    padding: 5px 13px !important;
+    width: 100% !important;
+    font-weight: 400 !important;
+}
+div.ex-btn .stButton > button:hover {
+    background: #EEEDFE !important;
+    border-color: #AFA9EC !important;
+    color: #3C3489 !important;
+    transform: none !important;
+}
+
+/* ── Slider ── */
+[data-testid="stSlider"] label {
+    color: #534AB7 !important;
+    font-size: 13px !important;
+    font-family: 'JetBrains Mono', monospace !important;
+}
+[data-testid="stSlider"] [data-baseweb="slider"] div[role="progressbar"] {
+    background: #7F77DD !important;
+}
+[data-testid="stSlider"] [data-baseweb="slider"] [role="slider"],
+[data-testid="stSlider"] [data-baseweb="slider"] div[data-baseweb="thumb"],
+[data-testid="stSlider"] input[type="range"]::-webkit-slider-thumb,
+[data-testid="stSlider"] input[type="range"]::-moz-range-thumb {
+    background: #534AB7 !important;
+    border-color: #534AB7 !important;
+    background-color: #534AB7 !important;
+}
+[data-testid="stSlider"] * { accent-color: #534AB7 !important; }
+
+/* ── Checkbox ── */
+[data-testid="stCheckbox"] label {
+    color: #534AB7 !important;
+    font-size: 13px !important;
+    font-family: 'JetBrains Mono', monospace !important;
+}
+[data-testid="stCheckbox"] [data-baseweb="checkbox"] span {
+    background-color: #534AB7 !important;
+    border-color: #534AB7 !important;
+}
+
+/* ── Radio → pill style ── */
+[data-testid="stRadio"] label {
+    color: #534AB7 !important;
+    font-size: 13px !important;
+    font-family: 'JetBrains Mono', monospace !important;
+}
+[data-testid="stRadio"] > div > div > label {
+    background: #ffffff !important;
+    border: 1px solid #CECBF6 !important;
+    border-radius: 20px !important;
+    padding: 5px 16px 5px 10px !important;
+    font-size: 12px !important;
+    color: #534AB7 !important;
+    cursor: pointer !important;
+    transition: all 0.15s !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    margin-bottom: 4px !important;
+}
+[data-testid="stRadio"] > div > div > label > div:first-child {
+    display: none !important;
+}
+[data-testid="stRadio"] > div > div > label:has(input:checked) {
+    background: #EEEDFE !important;
+    border-color: #AFA9EC !important;
+    color: #3C3489 !important;
+}
+
+/* ── Selectbox ── */
+[data-testid="stSelectbox"] label {
+    color: #534AB7 !important;
+    font-size: 13px !important;
+    font-family: 'JetBrains Mono', monospace !important;
+}
 [data-testid="stSelectbox"] > div > div {
     background: #ffffff !important;
-    border: 1.5px solid #bae6fd !important;
+    border: 1px solid #CECBF6 !important;
     border-radius: 10px !important;
-    color: #0f172a !important;
+    color: #1A1740 !important;
 }
 
+/* ── File uploader ── */
 [data-testid="stFileUploader"] {
     background: #ffffff !important;
-    border: 1.5px dashed #bae6fd !important;
+    border: 1px dashed #AFA9EC !important;
     border-radius: 12px !important;
 }
-[data-testid="stFileUploader"] svg { fill: #0ea5e9 !important; }
+[data-testid="stFileUploader"] svg { fill: #7F77DD !important; }
+[data-testid="stFileUploader"] p   { color: #534AB7 !important; }
 
+/* ── Alerts ── */
 [data-testid="stAlert"] {
-    background: #f0f9ff !important;
-    border: 1px solid #bae6fd !important;
-    border-radius: 12px !important;
+    background: #EEEDFE !important;
+    border: 1px solid #CECBF6 !important;
+    border-radius: 10px !important;
+    color: #1A1740 !important;
 }
 
-hr { border-color: #bae6fd !important; }
+hr { border-color: #CECBF6 !important; }
 
-.card, .card-accent, .card-hero, .card-filter {
-    border-radius: 16px;
-    box-shadow: 0 1px 8px rgba(14, 165, 233, 0.06);
+/* ── Stat box ── */
+.stat-box {
+    background: #ffffff;
+    border: 1px solid #CECBF6;
+    border-radius: 10px;
+    padding: 10px 12px;
+    text-align: center;
+}
+.stat-num {
+    font-size: 22px;
+    font-weight: 600;
+    color: #534AB7;
+    font-family: 'JetBrains Mono', monospace;
+}
+.stat-lbl {
+    font-size: 10px;
+    color: #7F77DD;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-top: 2px;
+}
+
+/* ── Status ── */
+.status-online  { color: #534AB7; font-size: 13px; font-family: 'JetBrains Mono', monospace; }
+.status-offline { color: #A32D2D; font-size: 13px; font-family: 'JetBrains Mono', monospace; }
+
+/* ── Section tags ── */
+.section-tag {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    font-weight: 500;
+    font-family: 'JetBrains Mono', monospace;
+    color: #534AB7;
+    margin-bottom: 8px;
+}
+.section-tag.warn { color: #A32D2D; }
+.section-tag.src  { color: #7F77DD; }
+.section-tag.info { color: #7F77DD; }
+
+/* ── Cards ── */
+.card {
+    background: #ffffff;
+    border: 1px solid #CECBF6;
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin-bottom: 2px;
 }
 .card-hero {
-    background: linear-gradient(135deg, #f0f9ff 0%, #ecfdf5 100%);
-    border: 1.5px solid #bae6fd;
+    background: #EEEDFE;
+    border: 1px solid #CECBF6;
+    border-radius: 12px;
+    padding: 18px 20px;
+    margin-bottom: 2px;
+}
+.card-accent {
+    background: #F0EFF9;
+    border: 1px solid #CECBF6;
+    border-radius: 12px;
+    padding: 14px 18px;
+}
+.card-filter {
+    background: #ffffff;
+    border: 1px solid #CECBF6;
+    border-left: 3px solid #7F77DD;
+    border-radius: 0 12px 12px 0;
+    padding: 14px 18px;
+    margin-bottom: 4px;
+}
+.body-text { font-size: 15px; color: #1A1740; line-height: 1.7; }
+.not-found { font-size: 14px; color: #AFA9EC; font-style: italic; }
+
+/* ── Meta row ── */
+.meta-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.meta-pill {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 4px;
+    background: #F0EFF9;
+    border: 1px solid #CECBF6;
+    color: #534AB7;
+    font-family: 'JetBrains Mono', monospace;
+}
+.meta-pill.orange,
+.meta-pill.teal {
+    background: #EEEDFE;
+    border-color: #AFA9EC;
+    color: #3C3489;
 }
 
-.section-tag { color: #0ea5e9; }
-.section-tag::before { background: #0ea5e9; }
-.section-tag.warn { color: #f43f5e; }
-.section-tag.warn::before { background: #f43f5e; }
-.section-tag.src  { color: #10b981; }
-.section-tag.src::before  { background: #10b981; }
-
-.chip.active, .meta-pill.orange {
-    border-color: #0ea5e9;
-    color: #0ea5e9;
-    background: #e0f2fe;
+/* ── Source chips ── */
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    background: #F0EFF9;
+    border: 1px solid #CECBF6;
+    color: #534AB7;
+    margin-right: 4px;
+    margin-bottom: 4px;
+    font-family: 'JetBrains Mono', monospace;
+}
+.chip::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #7F77DD;
+    flex-shrink: 0;
+}
+.chip.active {
+    background: #EEEDFE;
+    border-color: #AFA9EC;
+    color: #3C3489;
 }
 
-.stat-num {
-    background: linear-gradient(135deg, #0ea5e9, #10b981);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
+/* ── History ── */
+.hist-item { padding: 8px 10px; border-radius: 8px; cursor: pointer; margin-bottom: 3px; }
+.hist-item:hover { background: #ffffff; }
+.hist-q { font-size: 12px; color: #1A1740; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hist-t { font-size: 10px; color: #7F77DD; margin-top: 2px; font-family: 'JetBrains Mono', monospace; }
 
-.status-online  { color: #10b981; }
-.welcome { background: linear-gradient(135deg, #f0f9ff 0%, #ecfdf5 100%); }
+/* ── Loading ── */
+.loading-overlay {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; padding: 48px 24px;
+    background: #ffffff; border: 1px solid #CECBF6;
+    border-radius: 16px; margin: 16px 0;
+}
+.loading-title { font-size: 16px; font-weight: 500; color: #1A1740; margin-top: 16px; font-family: 'Sora', sans-serif; }
+.loading-sub   { font-size: 13px; color: #7F77DD; margin-top: 4px; }
+.loading-steps { display: flex; gap: 24px; margin-top: 20px; }
+.step          { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.step-dot      { width: 8px; height: 8px; border-radius: 50%; background: #CECBF6; }
+.step.active .step-dot { background: #534AB7; }
+.step-label    { font-size: 10px; color: #7F77DD; text-transform: uppercase; letter-spacing: 0.5px; font-family: 'JetBrains Mono', monospace; }
 .pulse-ring {
-    border-top-color: #0ea5e9;
-    border-right-color: #10b981;
+    width: 40px; height: 40px; border-radius: 50%;
+    border: 3px solid #CECBF6;
+    border-top-color: #534AB7; border-right-color: #7F77DD;
+    animation: spin 1s linear infinite;
 }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Welcome ── */
+.welcome {
+    background: #EEEDFE; border: 1px solid #CECBF6;
+    border-radius: 16px; padding: 40px 32px; text-align: center;
+}
+.welcome-icon  { font-size: 40px; margin-bottom: 14px; }
+.welcome-title { font-size: 20px; font-family: 'Sora', sans-serif; color: #1A1740; margin-bottom: 10px; font-weight: 600; }
+.welcome-sub   { font-size: 14px; color: #7F77DD; line-height: 1.75; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -242,7 +492,6 @@ def get_history():
         return []
 
 def get_known_sources(history):
-    """Extract unique source filenames from query history."""
     sources = set()
     for h in history:
         for s in h.get("sources_used", []):
@@ -260,8 +509,11 @@ def call_summarize(query, n_results, use_mmr, source_filter=None):
     return r.json()
 
 def upload_file(file):
-    r = requests.post(f"{API}/upload",
-        files={"file": (file.name, file.getvalue(), "application/octet-stream")}, timeout=60)
+    r = requests.post(
+        f"{API}/upload",
+        files={"file": (file.name, file.getvalue(), "application/octet-stream")},
+        timeout=60,
+    )
     if not r.ok:
         raise Exception(r.json().get("detail", "Upload failed"))
     return r.json()
@@ -315,8 +567,23 @@ if "last_uploaded" not in st.session_state: st.session_state.last_uploaded = Non
 
 # ── Sidebar ────────────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("### 🩺 ClinicalReview")
-    st.markdown('<p style="font-size:13px;color:#92400e;margin-top:-8px;">AI-powered medical summarization</p>', unsafe_allow_html=True)
+
+    # Logo
+    st.markdown("""
+    <div class="sb-logo-wrap">
+      <div class="sb-logo-icon">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <rect x="3" y="3" width="18" height="18" rx="4" stroke="#EEEDFE" stroke-width="1.5" fill="none"/>
+          <path d="M12 8v8M8 12h8" stroke="#EEEDFE" stroke-width="2"/>
+        </svg>
+      </div>
+      <div>
+        <div class="sb-logo-name">ClinicalReview</div>
+        <div class="sb-logo-sub">AI-powered medical summarization</div>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
     st.markdown("---")
 
     online, chunks = check_health()
@@ -336,12 +603,12 @@ with st.sidebar:
         st.markdown(f'<div class="stat-box"><div class="stat-num">{len(history)}</div><div class="stat-lbl">Queries</div></div>', unsafe_allow_html=True)
 
     st.markdown("---")
-    st.markdown('<p style="font-size:13px;font-weight:600;color:#1a0a00;margin-bottom:4px;">⚙ Retrieval Settings</p>', unsafe_allow_html=True)
+    st.markdown('<p style="font-size:13px;font-weight:600;color:#1A1740;margin-bottom:4px;">⚙ Retrieval Settings</p>', unsafe_allow_html=True)
     n_results = st.slider("Top-K chunks", 1, 15, 5)
     use_mmr   = st.checkbox("MMR Diversity Ranking", value=True)
 
     st.markdown("---")
-    st.markdown('<p style="font-size:13px;font-weight:600;color:#1a0a00;margin-bottom:4px;">📄 Upload Document</p>', unsafe_allow_html=True)
+    st.markdown('<p style="font-size:13px;font-weight:600;color:#1A1740;margin-bottom:4px;">📄 Upload Document</p>', unsafe_allow_html=True)
     uploaded = st.file_uploader("Upload", type=["txt", "pdf", "docx"], label_visibility="collapsed")
     if uploaded:
         if st.button("➕  Ingest into ChromaDB"):
@@ -354,9 +621,9 @@ with st.sidebar:
                     st.error(str(e))
 
     st.markdown("---")
-    st.markdown('<p style="font-size:13px;font-weight:600;color:#1a0a00;margin-bottom:8px;">🕐 Recent Queries</p>', unsafe_allow_html=True)
+    st.markdown('<p style="font-size:13px;font-weight:600;color:#1A1740;margin-bottom:8px;">🕐 Recent Queries</p>', unsafe_allow_html=True)
     if not history:
-        st.markdown('<div style="font-size:13px;color:#c4a882;font-style:italic;">No queries yet</div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-size:13px;color:#AFA9EC;font-style:italic;">No queries yet</div>', unsafe_allow_html=True)
     else:
         for h in history[:5]:
             q = h.get("query", "")
@@ -370,17 +637,14 @@ with st.sidebar:
 
 # ── Main ───────────────────────────────────────────────────────────────────────
 st.markdown("""
-<h1>Ask a <span style="background:linear-gradient(135deg,#f97316,#ec4899);
--webkit-background-clip:text;-webkit-text-fill-color:transparent;
-font-style:italic;">clinical question</span></h1>
+<h1>Ask a <span>clinical question</span></h1>
 """, unsafe_allow_html=True)
 
 st.markdown("""
-<div style="background:#ffffff;border:1px solid #fde8d8;border-left:4px solid #f97316;
-            border-radius:0 12px 12px 0;padding:16px 22px;margin-bottom:20px;
-            box-shadow:0 1px 6px rgba(249,115,22,0.06);">
-    <div style="font-size:16px;color:#3d1a00;line-height:1.85;font-weight:300;">
-        🩺 <strong style="color:#1a0a00;font-weight:500;">Got a lengthy clinical document?</strong>
+<div style="background:#ffffff;border:1px solid #CECBF6;border-left:4px solid #7F77DD;
+            border-radius:0 12px 12px 0;padding:16px 22px;margin-bottom:20px;">
+    <div style="font-size:16px;color:#1A1740;line-height:1.85;font-weight:300;">
+        🩺 <strong style="color:#1A1740;font-weight:500;">Got a lengthy clinical document?</strong>
         Just upload it, ask your question, and get a clean structured summary in seconds.<br>
         No more reading through pages of medical text — the AI finds exactly what matters and presents it clearly.
     </div>
@@ -388,14 +652,15 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.markdown(
-    '<p style="color:#c4a882;font-size:15px;margin-top:-8px;margin-bottom:24px;">'
+    '<p style="color:#AFA9EC;font-size:14px;margin-top:-8px;margin-bottom:24px;'
+    'font-family:\'JetBrains Mono\',monospace;">'
     'RAG · Groq Llama 3.3 · ChromaDB · sentence-transformers</p>',
     unsafe_allow_html=True,
 )
 
 # Example queries
 st.markdown(
-    '<div style="font-family:\'IBM Plex Mono\',monospace;font-size:11px;color:#c4a882;'
+    '<div style="font-family:\'JetBrains Mono\',monospace;font-size:11px;color:#AFA9EC;'
     'letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;">Try an example</div>',
     unsafe_allow_html=True,
 )
@@ -421,7 +686,7 @@ if st.session_state.last_uploaded and st.session_state.last_uploaded not in know
 st.markdown("""
 <div class="card-filter">
     <div class="section-tag info">🎯 Document Filter — Search Scope</div>
-    <div style="font-size:14px;color:#92400e;margin-bottom:0px;font-weight:300;">
+    <div style="font-size:14px;color:#7F77DD;margin-bottom:0px;font-weight:300;">
         Search all indexed documents, or narrow down to a specific uploaded file for accurate personal results.
     </div>
 </div>
@@ -444,9 +709,18 @@ with filter_col2:
                 options=known_sources,
                 label_visibility="collapsed",
             )
-            st.markdown(f'<div style="font-size:12px;color:#f97316;margin-top:6px;font-family:\'IBM Plex Mono\',monospace;">🎯 Searching only in: <b>{source_filter}</b></div>', unsafe_allow_html=True)
+            st.markdown(
+                f'<div style="font-size:12px;color:#534AB7;margin-top:6px;'
+                f'font-family:\'JetBrains Mono\',monospace;">'
+                f'🎯 Searching only in: <b>{source_filter}</b></div>',
+                unsafe_allow_html=True,
+            )
         else:
-            st.markdown('<div style="font-size:13px;color:#dc2626;margin-top:8px;">No documents ingested yet — upload a file first, then ingest it.</div>', unsafe_allow_html=True)
+            st.markdown(
+                '<div style="font-size:13px;color:#A32D2D;margin-top:8px;">'
+                'No documents ingested yet — upload a file first, then ingest it.</div>',
+                unsafe_allow_html=True,
+            )
 
 st.markdown("<br>", unsafe_allow_html=True)
 
@@ -499,9 +773,9 @@ if submit and query.strip():
 # ── Error ──────────────────────────────────────────────────────────────────────
 if st.session_state.error:
     st.markdown(f"""
-    <div class="card" style="border-color:#fecdd3;background:#fff5f5;border-left:4px solid #f43f5e;">
+    <div class="card" style="border-color:#F7C1C1;background:#FCEBEB;border-left:4px solid #E24B4A;">
         <div class="section-tag warn">Error</div>
-        <div class="body-text" style="color:#be123c;font-size:16px;">{st.session_state.error}</div>
+        <div class="body-text" style="color:#A32D2D;font-size:16px;">{st.session_state.error}</div>
     </div>""", unsafe_allow_html=True)
 
 
@@ -510,7 +784,11 @@ elif st.session_state.result:
     r = st.session_state.result
     chunks_used = r.get("num_chunks_used", n_results)
     model       = r.get("model", "llama-3.3-70b-versatile")
-    filter_pill = f'<span class="meta-pill orange">🎯 {source_filter}</span>' if source_filter else '<span class="meta-pill">🌐 All documents</span>'
+    filter_pill = (
+        f'<span class="meta-pill teal">🎯 {source_filter}</span>'
+        if source_filter
+        else '<span class="meta-pill">🌐 All documents</span>'
+    )
 
     st.markdown(f"""
     <div class="meta-row">
@@ -556,21 +834,22 @@ else:
         <div class="welcome-title">Ready to summarize clinical documents</div>
         <div class="welcome-sub">
             Select an example query above or type your own clinical question.<br>
-            Use the <b style="color:#f97316;">Document Filter</b> above to search only your uploaded file for accurate personal results.
+            Use the <b style="color:#534AB7;">Document Filter</b> above to search only your uploaded file for accurate personal results.
         </div>
     </div>""", unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns(3)
-    for col, (icon, title, desc) in zip([col1,col2,col3],[
-        ("🔍","Retrieve", "Semantic search across indexed clinical chunks using sentence-transformers"),
-        ("🧠","Summarize","Groq Llama 3.3 generates structured summaries across 5 clinical sections"),
-        ("📋","Cite",     "Every claim cited back to the source document — zero hallucination"),
+    for col, (icon, title, desc) in zip([col1, col2, col3], [
+        ("🔍", "Retrieve",  "Semantic search across indexed clinical chunks using sentence-transformers"),
+        ("🧠", "Summarize", "Groq Llama 3.3 generates structured summaries across 5 clinical sections"),
+        ("📋", "Cite",      "Every claim cited back to the source document — zero hallucination"),
     ]):
         with col:
             st.markdown(f"""
             <div class="card" style="text-align:center;padding:30px 20px;">
                 <div style="font-size:36px;margin-bottom:14px;">{icon}</div>
                 <div class="section-tag" style="justify-content:center;font-size:12px;">{title}</div>
-                <div style="font-size:14px;color:#92400e;line-height:1.75;margin-top:8px;">{desc}</div>
+                <div style="font-size:14px;color:#7F77DD;line-height:1.75;margin-top:8px;">{desc}</div>
             </div>""", unsafe_allow_html=True)
+            
