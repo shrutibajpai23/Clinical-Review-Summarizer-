@@ -1,7 +1,7 @@
 """
 backend/main.py
 FastAPI application — Clinical Review Summarizer backend.
-Endpoints: /upload, /summarize, /history, /health
+Endpoints: /upload, /summarize, /predict, /analyze, /history, /health
 """
 
 from __future__ import annotations
@@ -21,39 +21,46 @@ from pydantic import BaseModel
 
 load_dotenv()
 
-# ── Import pipeline modules
+# ── Import pipeline modules ────────────────────────────────────────────────────
 from backend.ingestion.pipeline       import run_ingestion_pipeline
 from backend.embeddings.embedder      import embed_chunks
 from backend.vectorstore.chroma_store import add_chunks, get_collection_stats
 from backend.rag.retriever            import retrieve
 from backend.rag.summarizer           import summarize
+from backend.rag.predictor            import predict          
 
-# ── App setup 
+# ── App setup ──────────────────────────────────────────────────────────────────
 app = FastAPI(
     title       = "Clinical Review Summarizer API",
-    description = "RAG-powered clinical document summarization",
-    version     = "1.0.0",
+    description = "RAG-powered clinical document summarization and disease risk prediction",
+    version     = "2.0.0",
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins  = ["http://localhost:3000", "http://127.0.0.1:3000"],
-    allow_methods  = ["*"],
-    allow_headers  = ["*"],
+    allow_origins     = ["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_methods     = ["*"],
+    allow_headers     = ["*"],
     allow_credentials = True,
 )
 
-# ── In-memory session history (v1 — no database) 
+# ── In-memory session history (v1 — no database) ──────────────────────────────
 query_history: list[dict] = []
 
 
-# ── Request / Response models
+# ── Shared request model ───────────────────────────────────────────────────────
 
-class SummarizeRequest(BaseModel):
+class BaseRequest(BaseModel):
     query:         str
     source_filter: Optional[str] = None
     n_results:     int           = 5
     use_mmr:       bool          = True
+
+
+# ── /summarize models ──────────────────────────────────────────────────────────
+
+class SummarizeRequest(BaseRequest):
+    pass
 
 
 class SummarizeResponse(BaseModel):
@@ -69,7 +76,61 @@ class SummarizeResponse(BaseModel):
     timestamp:       str
 
 
-# ── Endpoints 
+# ── /predict models ────────────────────────────────────────────────────────────
+
+class PredictRequest(BaseRequest):
+    pass
+
+
+class PredictedCondition(BaseModel):
+    condition:           str
+    probability:         str
+    time_horizon:        str
+    supporting_evidence: str
+    citation:            str
+
+
+class LifestyleChanges(BaseModel):
+    diet:     str
+    exercise: str
+    sleep:    str
+    habits:   str
+    stress:   str
+
+
+class FollowUpTest(BaseModel):
+    test:      str
+    reason:    str
+    frequency: str
+
+
+class PredictResponse(BaseModel):
+    query:                str
+    risk_level:           str
+    risk_summary:         str
+    predicted_conditions: list[PredictedCondition]
+    reasoning:            str
+    precautions:          list[str]
+    lifestyle_changes:    LifestyleChanges
+    follow_up_tests:      list[FollowUpTest]
+    data_gaps:            str
+    sources_used:         list[str]
+    disclaimer:           str
+    model:                str
+    num_chunks_used:      int
+    timestamp:            str
+
+
+# ── /analyze model (summarize + predict combined) ──────────────────────────────
+
+class AnalyzeResponse(BaseModel):
+    query:      str
+    summary:    SummarizeResponse
+    prediction: PredictResponse
+    timestamp:  str
+
+
+# ── Endpoints ──────────────────────────────────────────────────────────────────
 
 @app.get("/health")
 def health_check():
@@ -111,13 +172,13 @@ async def upload_document(file: UploadFile = File(...)):
 
     # Run ingestion pipeline
     try:
-        result = run_ingestion_pipeline(tmp_path, save_chunks=False)
-        chunks = result["chunks"]
+        result   = run_ingestion_pipeline(tmp_path, save_chunks=False)
+        chunks   = result["chunks"]
         doc_meta = result["doc_meta"]
 
         # Patch source filename to the original uploaded name
         for chunk in chunks:
-            chunk["source"]   = file.filename
+            chunk["source"]    = file.filename
             chunk["file_path"] = file.filename
 
     except Exception as exc:
@@ -154,12 +215,11 @@ async def upload_document(file: UploadFile = File(...)):
 async def summarize_query(request: SummarizeRequest):
     """
     Accept a clinical query, retrieve relevant chunks via RAG,
-    and return a structured GPT-4 summary.
+    and return a structured clinical summary.
     """
     if not request.query.strip():
         raise HTTPException(status_code=400, detail="Query cannot be empty.")
 
-    # Retrieve relevant chunks
     try:
         chunks = retrieve(
             query         = request.query,
@@ -170,26 +230,126 @@ async def summarize_query(request: SummarizeRequest):
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Retrieval failed: {exc}")
 
-    # Generate summary
     try:
         summary = summarize(request.query, chunks)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Summarization failed: {exc}")
 
-    timestamp = datetime.utcnow().isoformat() + "Z"
+    timestamp          = datetime.utcnow().isoformat() + "Z"
     summary["timestamp"] = timestamp
 
-    # Save to session history
-    query_history.append(
-        {
-            "query":           request.query,
-            "timestamp":       timestamp,
-            "num_chunks_used": summary.get("num_chunks_used", 0),
-            "sources_used":    summary.get("sources_used", []),
-        }
-    )
+    query_history.append({
+        "type":            "summarize",
+        "query":           request.query,
+        "timestamp":       timestamp,
+        "num_chunks_used": summary.get("num_chunks_used", 0),
+        "sources_used":    summary.get("sources_used", []),
+    })
 
     return SummarizeResponse(**summary)
+
+
+@app.post("/predict", response_model=PredictResponse)
+async def predict_query(request: PredictRequest):
+    """
+    Accept a health query, retrieve relevant clinical chunks via RAG,
+    and return a structured disease-risk prediction with precautions.
+
+    Best used when the uploaded documents contain blood reports, vitals,
+    lab results, or detailed clinical notes — the richer the data, the
+    more accurate the prediction.
+    """
+    if not request.query.strip():
+        raise HTTPException(status_code=400, detail="Query cannot be empty.")
+
+    # Retrieve relevant chunks (same retriever as /summarize)
+    try:
+        chunks = retrieve(
+            query         = request.query,
+            source_filter = request.source_filter,
+            n_results     = request.n_results,
+            use_mmr       = request.use_mmr,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Retrieval failed: {exc}")
+
+    # Generate prediction
+    try:
+        prediction = predict(request.query, chunks)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Prediction failed: {exc}")
+
+    timestamp               = datetime.utcnow().isoformat() + "Z"
+    prediction["timestamp"] = timestamp
+
+    query_history.append({
+        "type":            "predict",
+        "query":           request.query,
+        "timestamp":       timestamp,
+        "risk_level":      prediction.get("risk_level", "unknown"),
+        "num_chunks_used": prediction.get("num_chunks_used", 0),
+        "sources_used":    prediction.get("sources_used", []),
+    })
+
+    return PredictResponse(**prediction)
+
+
+@app.post("/analyze")
+async def analyze_query(request: BaseRequest):
+    """
+    Run BOTH summarization and disease-risk prediction in a single call.
+    Returns a combined response with 'summary' and 'prediction' fields.
+
+    Useful when the frontend wants to display both panels side by side
+    without making two separate network requests.
+    """
+    if not request.query.strip():
+        raise HTTPException(status_code=400, detail="Query cannot be empty.")
+
+    # Retrieve once — shared by both summarize and predict
+    try:
+        chunks = retrieve(
+            query         = request.query,
+            source_filter = request.source_filter,
+            n_results     = request.n_results,
+            use_mmr       = request.use_mmr,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Retrieval failed: {exc}")
+
+    # Run summarize
+    try:
+        summary = summarize(request.query, chunks)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Summarization failed: {exc}")
+
+    # Run predict
+    try:
+        prediction = predict(request.query, chunks)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Prediction failed: {exc}")
+
+    timestamp = datetime.utcnow().isoformat() + "Z"
+    summary["timestamp"]    = timestamp
+    prediction["timestamp"] = timestamp
+
+    query_history.append({
+        "type":            "analyze",
+        "query":           request.query,
+        "timestamp":       timestamp,
+        "risk_level":      prediction.get("risk_level", "unknown"),
+        "num_chunks_used": len(chunks),
+        "sources_used":    list(set(
+            summary.get("sources_used", []) + prediction.get("sources_used", [])
+        )),
+    })
+
+    return {
+        "query":      request.query,
+        "summary":    summary,
+        "prediction": prediction,
+        "timestamp":  timestamp,
+    }
 
 
 @app.get("/history")
@@ -206,8 +366,6 @@ def clear_history():
     """Clear the in-memory query history."""
     query_history.clear()
     return {"status": "cleared"}
-
-
 
 
 @app.post("/ingest-bulk")
@@ -237,13 +395,12 @@ async def ingest_bulk(processed_dir: str = "data/processed"):
             errors.append({"file": json_file.name, "error": str(exc)})
 
     return {
-        "status":      "completed",
-        "files_processed": len(json_files) - len(errors),
+        "status":             "completed",
+        "files_processed":    len(json_files) - len(errors),
         "total_chunks_added": total_added,
-        "errors":      errors,
-        "timestamp":   datetime.utcnow().isoformat() + "Z",
+        "errors":             errors,
+        "timestamp":          datetime.utcnow().isoformat() + "Z",
     }
-
 
 
 if __name__ == "__main__":
