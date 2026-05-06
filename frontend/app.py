@@ -511,7 +511,7 @@ with st.sidebar:
             <div>
                 <div style="font-family:'Merriweather',serif;font-size:15px;font-weight:700;color:#FFFFFF;">ClinicalReview</div>
                 <div style="font-size:9px;color:rgba(255,255,255,0.28);margin-top:2px;font-family:'IBM Plex Mono',monospace;
-                    letter-spacing:2px;text-transform:uppercase;">AI · RAG · Timeline</div>
+                    letter-spacing:2px;text-transform:uppercase;">AI · RAG </div>
             </div>
         </div>
     </div>
